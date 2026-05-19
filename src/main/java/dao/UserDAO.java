@@ -9,7 +9,7 @@ import model.User;
 
 public class UserDAO {
     // データベース接続情報
-    private final String JDBC_URL = "jdbc:h2:file:C:/poritec/ソフトウェア実習/dokoTsubu/db/dokoTsubu;AUTO_SERVER=TRUE";
+    private final String JDBC_URL = "jdbc:h2:file:C:/poritec/ソフトウェア実習/RUTSUBOT/db/RUTSUBOT;AUTO_SERVER=TRUE";
     private final String DB_USER = "sa";
     private final String DB_PASS = "";
 

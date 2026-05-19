@@ -1,5 +1,6 @@
 package dao;
 
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -12,7 +13,7 @@ import model.Mutter;
 
 public class MutterDAO {
     // データベース接続情報
-    private final String JDBC_URL = "jdbc:h2:file:C:/poritec/ソフトウェア実習/dokoTsubu/db/dokoTsubu;AUTO_SERVER=TRUE";
+    private final String JDBC_URL = "jdbc:h2:file:C:/poritec/ソフトウェア実習/RUTSUBOT/db/RUTSUBOT;AUTO_SERVER=TRUE";
     private final String DB_USER = "sa";
     private final String DB_PASS = "";
 
@@ -35,7 +36,7 @@ public class MutterDAO {
         try (Connection conn = DriverManager.getConnection(JDBC_URL, DB_USER, DB_PASS)) {
 
             // SELECT文の準備 (JOINを使用してユーザー名を取得)
-            String sql = "SELECT M.ID, M.USER_ID, U.NAME, M.TEXT FROM MUTTERS M JOIN USERS U ON M.USER_ID = U.ID ORDER BY M.ID DESC";
+            String sql = "SELECT M.ID, M.USER_ID, U.NAME, M.TEXT, M.CREATED_AT FROM MUTTERS M JOIN USERS U ON M.USER_ID = U.ID ORDER BY M.ID DESC";
             PreparedStatement pStmt = conn.prepareStatement(sql);
             ResultSet rs = pStmt.executeQuery();
             while (rs.next()) {
@@ -43,7 +44,9 @@ public class MutterDAO {
                 int userId = rs.getInt("USER_ID");
                 String userName = rs.getString("NAME");
                 String text = rs.getString("TEXT");
-                mutterList.add(new Mutter(id, userId, userName, text));
+                java.sql.Timestamp createdAt = rs.getTimestamp("CREATED_AT");
+                
+                mutterList.add(new Mutter(id, userId, userName, text,createdAt));
             }
             System.out.println("DEBUG: MutterDAO.findAll 取得件数: " + mutterList.size());
 
@@ -65,7 +68,7 @@ public class MutterDAO {
         try (Connection conn = DriverManager.getConnection(JDBC_URL, DB_USER, DB_PASS)) {
 
             // SELECT文の準備 (JOINを使用してユーザー名を取得)
-            String sql = "SELECT M.ID, M.USER_ID, U.NAME, M.TEXT FROM MUTTERS M JOIN USERS U ON M.USER_ID = U.ID WHERE M.TEXT LIKE ? ORDER BY M.ID DESC";
+            String sql = "SELECT M.ID, M.USER_ID, U.NAME, M.TEXT, M.CREATED_AT FROM MUTTERS M JOIN USERS U ON M.USER_ID = U.ID WHERE M.TEXT LIKE ? ORDER BY M.ID DESC";
             PreparedStatement pStmt = conn.prepareStatement(sql);
             pStmt.setString(1, "%"+ keyword + "%");//キーワードを％で囲む
 
@@ -76,7 +79,8 @@ public class MutterDAO {
                 int userId = rs.getInt("USER_ID");
                 String userName = rs.getString("NAME");
                 String text = rs.getString("TEXT");
-                mutterList.add(new Mutter(id, userId, userName, text));
+                java.sql.Timestamp createdAt = rs.getTimestamp("CREATED_AT");
+                mutterList.add(new Mutter(id, userId, userName, text, createdAt));
             }
 
         } catch (SQLException e) {
@@ -154,12 +158,13 @@ public class MutterDAO {
 public Mutter findById(int id) {
     loadDriver();
     try (Connection conn = DriverManager.getConnection(JDBC_URL, DB_USER, DB_PASS)) {
-        String sql = "SELECT M.ID, M.USER_ID, U.NAME, M.TEXT FROM MUTTERS M JOIN USERS U ON M.USER_ID = U.ID WHERE M.ID = ?";
+        String sql = "SELECT M.ID, M.USER_ID, U.NAME, M.TEXT, M.CREATED_AT FROM MUTTERS M JOIN USERS U ON M.USER_ID = U.ID WHERE M.ID = ?";
         PreparedStatement pStmt = conn.prepareStatement(sql);
         pStmt.setInt(1, id);
         ResultSet rs = pStmt.executeQuery();
         if (rs.next()) {
-            return new Mutter(rs.getInt("ID"), rs.getInt("USER_ID"), rs.getString("NAME"), rs.getString("TEXT"));
+            java.sql.Timestamp createdAt = rs.getTimestamp("CREATED_AT");
+            return new Mutter(rs.getInt("ID"), rs.getInt("USER_ID"), rs.getString("NAME"), rs.getString("TEXT"), createdAt);
         }
     } catch (SQLException e) {
         e.printStackTrace();
