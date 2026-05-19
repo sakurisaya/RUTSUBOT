@@ -1,0 +1,24 @@
+# コンパイル済みクラスファイル
+bin/
+build/
+src/main/webapp/WEB-INF/classes/
+
+# データベースファイル (H2DB)
+db/*.db
+db/*.log.db
+db/*.lock.db
+
+# ドキュメントおよびログファイル
+docs/
+*.log
+
+# IDE設定ファイル
+.settings/
+.project
+.classpath
+.vscode/
+.idea/
+
+# OS一時ファイル
+Thumbs.db
+.DS_Store
