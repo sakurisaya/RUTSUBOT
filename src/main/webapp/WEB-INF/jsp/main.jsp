@@ -47,7 +47,13 @@ String errorMsg = (String) request.getAttribute("errorMsg");
                       <a href="UpdateMutter?id=<%= mutter.getId() %>">編集</a>
                       <a href="DeleteMutter?id=<%= mutter.getId() %>" onclick="return confirm('本当に削除しますか？')">削除</a>
                       <% } %>
-                      </div>
+                      <form method="post" action="Like" style="display: inline;">
+                          <input type="hidden" name="mutterId" value="<%= mutter.getId() %>" />
+                              <button type="submit" style="border:none;background:none;color:#ff4500;">
+                                  ♡ <%= mutter.getLikeCount() %>
+                              </button>
+                      </form>
+                    </div>
                     <p style="margin-block: 5px;"><%=mutter.getText()%></p>
                     </div>
               <% } %>
