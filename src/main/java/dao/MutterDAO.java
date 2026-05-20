@@ -17,26 +17,45 @@ public class MutterDAO {
     private final String DB_USER = "sa";
     private final String DB_PASS = "";
 
-    // 前回の学びを活かし、ドライバーをロードする処理を共通化
-    private void loadDriver() {
+    // JDBC ドライバのロード
+    static {
+        // JDBC ドライバをロード
         try {
-            Class.forName("org.h2.Driver");
+            Class.forName("org.h2.Driver");   // アプリ起動時に 1 回だけ実行
         } catch (ClassNotFoundException e) {
-            throw new IllegalStateException("JDBCドライバを読み込めませんでした");
+            throw new IllegalStateException("JDBC ドライバが見つかりません", e);
         }
-    }
+        // Ensure LIKES_COUNT column exists (add if missing)
+        try (java.sql.Connection conn = java.sql.DriverManager.getConnection(
+                "jdbc:h2:file:C:/poritec/ソフトウェア実習/RUTSUBOT/db/RUTSUBOT;AUTO_SERVER=TRUE", "sa", "")) {
+            java.sql.DatabaseMetaData meta = conn.getMetaData();
+            try (java.sql.ResultSet rs = meta.getColumns(null, null, "MUTTERS", "LIKES_COUNT")) {
+                if (!rs.next()) {
+                    try (java.sql.Statement stmt = conn.createStatement()) {
+                        stmt.executeUpdate("ALTER TABLE MUTTERS ADD COLUMN LIKES_COUNT INT DEFAULT 0");
+                        System.out.println("DEBUG: ALTER TABLE added LIKES_COUNT column");
+                    }
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+            try {
+                Class.forName("org.h2.Driver");   // アプリ起動時に 1 回だけ実行
+            } catch (ClassNotFoundException e) {
+                throw new IllegalStateException("JDBC ドライバが見つかりません", e);
+            }
+        }
 
     /** つぶやきをすべて取得する */  
     public List<Mutter> findAll() {
         List<Mutter> mutterList = new ArrayList<>();
-        loadDriver();
-
 
         // データベース接続
         try (Connection conn = DriverManager.getConnection(JDBC_URL, DB_USER, DB_PASS)) {
 
             // SELECT文の準備 (JOINを使用してユーザー名を取得)
-            String sql = "SELECT M.ID, M.USER_ID, U.NAME, M.TEXT, M.CREATED_AT FROM MUTTERS M JOIN USERS U ON M.USER_ID = U.ID ORDER BY M.ID DESC";
+            String sql = "SELECT M.ID, M.USER_ID, U.NAME, M.TEXT, M.CREATED_AT, M.LIKES_COUNT FROM MUTTERS M JOIN USERS U ON M.USER_ID = U.ID ORDER BY M.ID DESC";
             PreparedStatement pStmt = conn.prepareStatement(sql);
             ResultSet rs = pStmt.executeQuery();
             while (rs.next()) {
@@ -45,8 +64,9 @@ public class MutterDAO {
                 String userName = rs.getString("NAME");
                 String text = rs.getString("TEXT");
                 java.sql.Timestamp createdAt = rs.getTimestamp("CREATED_AT");
+                int likeCount = rs.getInt("LIKES_COUNT");
                 
-                mutterList.add(new Mutter(id, userId, userName, text,createdAt));
+                mutterList.add(new Mutter(id, userId, userName, text,createdAt, likeCount));
             }
             System.out.println("DEBUG: MutterDAO.findAll 取得件数: " + mutterList.size());
 
@@ -61,14 +81,12 @@ public class MutterDAO {
      // 【検索機能】特定のキーワードを含むつぶやきを検索する
     public List<Mutter> findWithFilter(String keyword) {
         List<Mutter> mutterList = new ArrayList<>();
-        loadDriver();
-
 
         // データベース接続
         try (Connection conn = DriverManager.getConnection(JDBC_URL, DB_USER, DB_PASS)) {
 
             // SELECT文の準備 (JOINを使用してユーザー名を取得)
-            String sql = "SELECT M.ID, M.USER_ID, U.NAME, M.TEXT, M.CREATED_AT FROM MUTTERS M JOIN USERS U ON M.USER_ID = U.ID WHERE M.TEXT LIKE ? ORDER BY M.ID DESC";
+            String sql = "SELECT M.ID, M.USER_ID, U.NAME, M.TEXT, M.CREATED_AT, M.LIKES_COUNT FROM MUTTERS M JOIN USERS U ON M.USER_ID = U.ID WHERE M.TEXT LIKE ? ORDER BY M.ID DESC";
             PreparedStatement pStmt = conn.prepareStatement(sql);
             pStmt.setString(1, "%"+ keyword + "%");//キーワードを％で囲む
 
@@ -80,7 +98,9 @@ public class MutterDAO {
                 String userName = rs.getString("NAME");
                 String text = rs.getString("TEXT");
                 java.sql.Timestamp createdAt = rs.getTimestamp("CREATED_AT");
-                mutterList.add(new Mutter(id, userId, userName, text, createdAt));
+                int likeCount = rs.getInt("LIKES_COUNT");
+
+                mutterList.add(new Mutter(id, userId, userName, text, createdAt, likeCount));
             }
 
         } catch (SQLException e) {
@@ -92,8 +112,6 @@ public class MutterDAO {
 
      // 新規つぶやきを登録する
     public boolean create(Mutter mutter) {
-        loadDriver();
-
         // データベース接続
         try (Connection conn = DriverManager.getConnection(JDBC_URL, DB_USER, DB_PASS)) {
 
@@ -115,8 +133,6 @@ public class MutterDAO {
 
      // 特定のIDのつぶやき内容を更新する
     public boolean update(Mutter mutter) {
-        loadDriver();
-
         // データベース接続
         try (Connection conn = DriverManager.getConnection(JDBC_URL, DB_USER, DB_PASS)) {
 
@@ -136,8 +152,6 @@ public class MutterDAO {
 
      // 特定のIDのつぶやきを削除する
     public boolean delete(int id) {
-        loadDriver();
-
         // データベース接続
         try (Connection conn = DriverManager.getConnection(JDBC_URL, DB_USER, DB_PASS)) {
 
@@ -155,20 +169,30 @@ public class MutterDAO {
     }
 
     /** 特定のIDのつぶやきを1件取得する */
-public Mutter findById(int id) {
-    loadDriver();
-    try (Connection conn = DriverManager.getConnection(JDBC_URL, DB_USER, DB_PASS)) {
-        String sql = "SELECT M.ID, M.USER_ID, U.NAME, M.TEXT, M.CREATED_AT FROM MUTTERS M JOIN USERS U ON M.USER_ID = U.ID WHERE M.ID = ?";
-        PreparedStatement pStmt = conn.prepareStatement(sql);
-        pStmt.setInt(1, id);
-        ResultSet rs = pStmt.executeQuery();
-        if (rs.next()) {
-            java.sql.Timestamp createdAt = rs.getTimestamp("CREATED_AT");
-            return new Mutter(rs.getInt("ID"), rs.getInt("USER_ID"), rs.getString("NAME"), rs.getString("TEXT"), createdAt);
+    public Mutter findById(int id) {        
+        try (Connection conn = DriverManager.getConnection(JDBC_URL, DB_USER, DB_PASS)) {
+            String sql = "SELECT M.ID, M.USER_ID, U.NAME, M.TEXT, M.CREATED_AT, M.LIKES_COUNT FROM MUTTERS M JOIN USERS U ON M.USER_ID = U.ID WHERE M.ID = ?";
+            PreparedStatement pStmt = conn.prepareStatement(sql);
+            pStmt.setInt(1, id);
+            ResultSet rs = pStmt.executeQuery();
+            if (rs.next()) {
+                java.sql.Timestamp createdAt = rs.getTimestamp("CREATED_AT");
+                return new Mutter(rs.getInt("ID"), rs.getInt("USER_ID"), rs.getString("NAME"), rs.getString("TEXT"), createdAt, rs.getInt("LIKES_COUNT"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-    } catch (SQLException e) {
-        e.printStackTrace();
+        return null;
     }
-    return null;
-}
+
+    //いいね
+    public void addLike(int Id) {        
+        try (Connection conn = DriverManager.getConnection(JDBC_URL, DB_USER, DB_PASS)) {
+            String sql = "UPDATE MUTTERS SET LIKES_COUNT = LIKES_COUNT + 1 WHERE ID = ?";
+            PreparedStatement pStmt = conn.prepareStatement(sql);
+            pStmt.setInt(1, Id);
+            pStmt.executeUpdate();
+        } catch (SQLException e) { e.printStackTrace(); }
+
+    }
 }
