@@ -39,14 +39,18 @@ String errorMsg = (String) request.getAttribute("errorMsg");
             <% } %>
               <% if(mutterList !=null) { %>
                 <% for(Mutter mutter : mutterList){%>
-                  <p>
-                    <%=mutter.getUserName()%>：<%=mutter.getText()%>
-                    <% if(mutter.getUserId() == loginUser.getId()) {%>
-                    <a href="UpdateMutter?id=<%= mutter.getId() %>">編集</a>
-                    <a href="DeleteMutter?id=<%= mutter.getId() %>" onclick="return confirm('本当に削除しますか？')">削除</a>
-                    <% } %>
-                  </p>
-                <% } %>
+                  <div style="border-bottom: 1px solid gray; padding-block: 5px;">
+                    <div style="font: small;">
+                      <span style="color: gray; font-size: 13px"><%=mutter.getCreatedAt() %></span>
+                      <span style="font-weight:bold; margin-inline:5px;"><%=mutter.getUserName()%>さん</span>
+                      <% if(mutter.getUserId() == loginUser.getId()) {%>
+                      <a href="UpdateMutter?id=<%= mutter.getId() %>">編集</a>
+                      <a href="DeleteMutter?id=<%= mutter.getId() %>" onclick="return confirm('本当に削除しますか？')">削除</a>
+                      <% } %>
+                      </div>
+                    <p style="margin-block: 5px;"><%=mutter.getText()%></p>
+                    </div>
+              <% } %>
               <% } %>
         </body>
 
