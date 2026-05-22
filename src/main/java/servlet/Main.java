@@ -45,6 +45,7 @@ public class Main extends HttpServlet {
     // リクエストパラメータの取得
     request.setCharacterEncoding("UTF-8");
     String text = request.getParameter("text");
+    System.out.println("DEBUG: [Main.java] 画面から受け取ったテキスト: " + text);
 
     // 入力値チェック
     if (text != null && text.length() != 0) {
@@ -54,6 +55,8 @@ public class Main extends HttpServlet {
 
       // つぶやきをDBに保存
       Mutter mutter = new Mutter(loginUser.getId(), text);
+      System.out.println("DEBUG: [Main.java] PostMutterLogicを呼び出します。ユーザーID: " + loginUser.getId());
+
       PostMutterLogic postMutterLogic = new PostMutterLogic();
       postMutterLogic.execute(mutter);
 
