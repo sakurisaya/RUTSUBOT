@@ -42,16 +42,21 @@ public class Main extends HttpServlet {
   }
 
   protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    // ログインしているか確認
+    HttpSession session = request.getSession();
+    User loginUser = (User) session.getAttribute("loginUser");
+
+    if (loginUser == null) { // ログインしていない場合
+      response.sendRedirect("index.jsp");
+      return;
+    }
+
     // リクエストパラメータの取得
     request.setCharacterEncoding("UTF-8");
     String text = request.getParameter("text");
 
     // 入力値チェック
     if (text != null && text.length() != 0) {
-      // 投稿処理の場合
-      HttpSession session = request.getSession();
-      User loginUser = (User) session.getAttribute("loginUser");
-
       // つぶやきをDBに保存
       Mutter mutter = new Mutter(loginUser.getId(), text);
 
