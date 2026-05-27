@@ -19,6 +19,9 @@ docs/
 .vscode/
 .idea/
 
+# 環境固有設定 (PC移行時に手動作成するファイル)
+env.ps1
+
 # OS一時ファイル
 Thumbs.db
 .DS_Store

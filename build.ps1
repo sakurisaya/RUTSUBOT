@@ -2,30 +2,57 @@
 
 $ErrorActionPreference = "Stop"
 
+# Load environment settings
+$envFile = Join-Path $PSScriptRoot "env.ps1"
+if (-not (Test-Path $envFile)) {
+    Write-Error "env.ps1 not found. Please create env.ps1 and set the paths."
+    exit 1
+}
+. $envFile
+
+# Resolve JAVA_HOME
+if ($JAVA_HOME_OVERRIDE -ne "") {
+    $env:JAVA_HOME = $JAVA_HOME_OVERRIDE
+}
+if (-not $env:JAVA_HOME) {
+    $temurinPath = Get-ChildItem "C:\Program Files\Eclipse Adoptium" -Filter "jdk-17*" -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($temurinPath) {
+        $env:JAVA_HOME = $temurinPath.FullName
+    } else {
+        Write-Error "JAVA_HOME is not set. Check env.ps1 or environment variables."
+        exit 1
+    }
+}
+
 # Paths
-$projectRoot = Get-Location
+$projectRoot = $PSScriptRoot
+$tomcatHome = $TOMCAT_HOME
 $srcDir = Join-Path $projectRoot "src\main\java"
 $webappDir = Join-Path $projectRoot "src\main\webapp"
 $classesDir = Join-Path $webappDir "WEB-INF\classes"
-$tomcatHome = "C:\poritec\tools\apache-tomcat-10.1.54"
 $libDir = Join-Path $tomcatHome "lib"
 
-# Check dependencies
+Write-Host "=== RUTSUBOT Build ===" -ForegroundColor Cyan
+Write-Host "JAVA_HOME : $($env:JAVA_HOME)"
+Write-Host "TOMCAT    : $tomcatHome"
+
 if (-not (Test-Path $tomcatHome)) {
-    Write-Error "Tomcat not found at $tomcatHome"
+    Write-Error "Tomcat not found: $tomcatHome"
+    exit 1
 }
 
 # Create classes directory
 if (-not (Test-Path $classesDir)) {
-    New-Item -ItemType Directory -Path $classesDir -Force
+    New-Item -ItemType Directory -Path $classesDir -Force | Out-Null
 }
 
 # Collect libraries
 $classpath = @()
-$classpath += Join-Path $libDir "servlet-api.jar"
-$classpath += Join-Path $libDir "jsp-api.jar"
+$servletJar = Join-Path $libDir "servlet-api.jar"
+if (Test-Path $servletJar) { $classpath += $servletJar }
+$jspJar = Join-Path $libDir "jsp-api.jar"
+if (Test-Path $jspJar) { $classpath += $jspJar }
 
-# Include project-specific libs
 $projectLibDir = Join-Path $webappDir "WEB-INF\lib"
 if (Test-Path $projectLibDir) {
     $projectLibs = Get-ChildItem -Path $projectLibDir -Filter "*.jar" | Select-Object -ExpandProperty FullName
@@ -42,9 +69,8 @@ if ($javaFiles.Count -eq 0) {
     exit 0
 }
 
-Write-Host "Compiling $($javaFiles.Count) files..."
+Write-Host "Compiling $($javaFiles.Count) files..." -ForegroundColor Yellow
 
-# Compile
-& javac -encoding UTF-8 -d $classesDir -classpath $classpathStr $javaFiles
+& "$($env:JAVA_HOME)\bin\javac.exe" -encoding UTF-8 -d $classesDir -classpath $classpathStr $javaFiles
 
-Write-Host "Build successful! Classes are in $classesDir"
+Write-Host "Build successful!" -ForegroundColor Green
